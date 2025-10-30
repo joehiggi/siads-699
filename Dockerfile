@@ -82,7 +82,11 @@ RUN pip install --no-cache-dir \
     pillow==10.1.0 \
     requests==2.31.0 \
     pyyaml==6.0.1 \
-    python-dotenv==1.0.0
+    python-dotenv==1.0.0 \
+    # Loading parquet files
+    pyarrow==12.0.1 \
+    fastparquet==0.8.3
+
 
 # Install Label Studio SDK for annotation integration
 RUN pip install --no-cache-dir label-studio-sdk==0.0.30

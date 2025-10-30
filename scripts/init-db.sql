@@ -5,9 +5,19 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
--- Documents Table: PDF metadata
+-- Raw Training Images: Store training dataset images
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS documents (
+    id SERIAL PRIMARY KEY,
+    image BYTEA NOT NULL,  -- Store image bytes directly
+    label INTEGER NOT NULL,  -- Image classification label
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- Documents Table: PDF metadata
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS raw_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     filename VARCHAR(255) NOT NULL,
     file_path TEXT NOT NULL,
