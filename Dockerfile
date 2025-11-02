@@ -75,7 +75,6 @@ RUN pip install --no-cache-dir \
     pyarrow \
     fastparquet
 
-
 # Install Label Studio SDK for annotation integration
 RUN pip install --no-cache-dir label-studio-sdk==0.0.30
 

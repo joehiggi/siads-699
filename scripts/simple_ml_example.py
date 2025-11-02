@@ -1,20 +1,16 @@
 """
-SIMPLE EXAMPLE: How Option 2 works for ML
+SIMPLE EXAMPLE:
 
-Option 2 Workflow:
 1. Metadata in PostgreSQL (fast queries) → tells you WHERE images are
 2. Images in Parquet files (efficient storage) → loaded on-demand during training
 3. Best of both worlds: SQL filtering + efficient image loading
 """
-
 import pandas as pd
 from PIL import Image
 from io import BytesIO
 from sqlalchemy import create_engine
 
-# ============================================================================
 # PART 1: Setup - Load metadata only (FAST!)
-# ============================================================================
 
 print("=" * 70)
 print("PART 1: Query metadata from PostgreSQL")
@@ -35,9 +31,7 @@ print("\nMetadata (first 10 rows):")
 print(metadata)
 print(f"\nQuery took milliseconds (no images loaded yet!)")
 
-# ============================================================================
 # PART 2: Load a specific image when you need it
-# ============================================================================
 
 print("\n" + "=" * 70)
 print("PART 2: Load specific image from parquet file on-demand")
@@ -62,42 +56,8 @@ image_bytes = image_data["bytes"] if isinstance(image_data, dict) else image_dat
 image = Image.open(BytesIO(image_bytes))
 print(f"\n✓ Loaded image: {image.size} pixels, mode: {image.mode}")
 
-# ============================================================================
-# PART 3: Why this is better for ML
-# ============================================================================
 
-print("\n" + "=" * 70)
-print("PART 3: Advantages for ML Training")
-print("=" * 70)
-
-advantages = """
-1. FAST FILTERING with SQL:
-   - "Give me 1000 samples of label 6" → instant query
-   - "Give me 100 samples per label" → stratified sampling via SQL
-   - "Give me small images only" → filter by size
-
-2. EFFICIENT MEMORY USAGE:
-   - Only load images you need, when you need them
-   - Don't waste RAM storing millions of images
-   - Perfect for PyTorch DataLoader with num_workers
-
-3. FLEXIBLE DATA EXPLORATION:
-   - Count samples per label → SQL
-   - Find class imbalance → SQL
-   - Create train/val/test splits → SQL
-   - All without loading a single image!
-
-4. SCALABLE:
-   - Works with millions of images
-   - Database handles indexing/filtering
-   - Parquet files are compressed and fast to read
-"""
-
-print(advantages)
-
-# ============================================================================
 # PART 4: Common ML queries
-# ============================================================================
 
 print("=" * 70)
 print("PART 4: Useful SQL queries for ML")
