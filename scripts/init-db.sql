@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS models (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Training Runs: Track Optuna trails
+-- Training Runs: Track Optuna trials
 CREATE TABLE IF NOT EXISTS training_runs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     model_id UUID REFERENCES models(id) ON DELETE SET NULL,
