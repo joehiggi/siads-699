@@ -1,6 +1,5 @@
 """Check all parquet files for metadata"""
 import pandas as pd
-import os
 from pathlib import Path
 
 parquet_dir = Path("/workspace/data/raw")
