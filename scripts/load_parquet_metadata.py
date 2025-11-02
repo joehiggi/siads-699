@@ -111,8 +111,10 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
     print("=" * 70)
     print(f"Total records loaded: {total_rows_loaded:,}")
     print(f"Time elapsed: {elapsed:.2f} seconds")
-    print(f"Records per second: {total_rows_loaded/elapsed:.0f}")
-
+    if elapsed > 0:
+        print(f"Records per second: {total_rows_loaded/elapsed:.0f}")
+    else:
+        print("Records per second: N/A (elapsed time is zero)")
     # Query statistics
     with engine.connect() as conn:
         result = conn.execute(text("SELECT COUNT(*) as total FROM document_metadata"))
