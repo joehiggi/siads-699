@@ -64,13 +64,13 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
         # Extract metadata (without loading full images)
         metadata_records = []
 
-        for idx, row in tqdm(df.iterrows(), total=len(df), desc="  Extracting metadata"):
+        for row in tqdm(df.itertuples(index=True), total=len(df), desc="  Extracting metadata"):
             metadata_records.append(
                 {
                     "parquet_file": pf.name,
-                    "row_index": idx,
-                    "label": row["label"],
-                    "image_size_bytes": get_image_size(row["image"]),
+                    "row_index": row.Index,
+                    "label": row.label,
+                    "image_size_bytes": get_image_size(row.image),
                 }
             )
 
