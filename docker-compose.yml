@@ -17,6 +17,15 @@ services:
       - TESSDATA_PREFIX=${TESSDATA_PREFIX}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
       - HISTFILE=${HISTFILE}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     command: sleep infinity
     stdin_open: true
     tty: true

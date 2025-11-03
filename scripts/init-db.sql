@@ -202,9 +202,114 @@ GROUP BY tr.id, tr.run_name, m.model_name, m.architecture,
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
 -- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
--- Success message
+-- =============================================================================
+-- PARQUET FILE METADATA & OCR RESULTS
+-- =============================================================================
+
+-- Parquet file metadata table (lmcheck)
+CREATE TABLE IF NOT EXISTS lmcheck (
+    id SERIAL PRIMARY KEY,
+    parquet_file VARCHAR(255) NOT NULL,
+    row_index INTEGER NOT NULL,
+    label INTEGER NOT NULL,
+    image_size_bytes INTEGER,
+    image_path TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(parquet_file, row_index)
+);
+
+-- Parquet OCR results table
+CREATE TABLE IF NOT EXISTS parquet_ocr_results (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    parquet_file VARCHAR(255) NOT NULL,
+    row_index INTEGER NOT NULL,
+    label INTEGER,
+    image_size_width INTEGER,
+    image_size_height INTEGER,
+    image_mode VARCHAR(10),
+    ocr_engine VARCHAR(50) NOT NULL,
+    tesseract_full_text TEXT,
+    tesseract_confidence FLOAT,
+    tesseract_word_count INTEGER,
+    yolo_region_count INTEGER DEFAULT 0,
+    processing_status VARCHAR(20) DEFAULT 'success',
+    processing_error TEXT,
+    processing_time_seconds FLOAT,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(parquet_file, row_index, ocr_engine)
+);
+
+-- Parquet OCR word-level details
+CREATE TABLE IF NOT EXISTS parquet_ocr_words (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ocr_result_id UUID NOT NULL REFERENCES parquet_ocr_results(id) ON DELETE CASCADE,
+    word_text VARCHAR(500),
+    confidence FLOAT,
+    x_min INTEGER,
+    y_min INTEGER,
+    x_max INTEGER,
+    y_max INTEGER,
+    sequence_number INTEGER
+);
+
+-- Parquet YOLO detected regions
+CREATE TABLE IF NOT EXISTS parquet_yolo_regions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ocr_result_id UUID NOT NULL REFERENCES parquet_ocr_results(id) ON DELETE CASCADE,
+    class_id INTEGER,
+    confidence FLOAT,
+    x_min INTEGER,
+    y_min INTEGER,
+    x_max INTEGER,
+    y_max INTEGER
+);
+
+-- =============================================================================
+-- INDEXES FOR PARQUET TABLES
+-- =============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_lmcheck_label ON lmcheck(label);
+CREATE INDEX IF NOT EXISTS idx_lmcheck_parquet_file ON lmcheck(parquet_file);
+CREATE INDEX IF NOT EXISTS idx_lmcheck_size ON lmcheck(image_size_bytes);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_parquet_file ON parquet_ocr_results(parquet_file);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_label ON parquet_ocr_results(label);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_engine ON parquet_ocr_results(ocr_engine);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_status ON parquet_ocr_results(processing_status);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_words_result_id ON parquet_ocr_words(ocr_result_id);
+CREATE INDEX IF NOT EXISTS idx_parquet_yolo_regions_result_id ON parquet_yolo_regions(ocr_result_id);
+
+-- =============================================================================
+-- VIEWS FOR PARQUET DATA
+-- =============================================================================
+
+-- Combined view of OCR results with parquet metadata
+CREATE OR REPLACE VIEW parquet_ocr_summary AS
+SELECT
+    ocr.id,
+    ocr.parquet_file,
+    ocr.row_index,
+    ocr.label,
+    ocr.ocr_engine,
+    ocr.tesseract_full_text,
+    ocr.tesseract_confidence,
+    ocr.tesseract_word_count,
+    ocr.yolo_region_count,
+    ocr.processing_status,
+    ocr.processed_at,
+    lm.image_size_bytes
+FROM parquet_ocr_results ocr
+LEFT JOIN lmcheck lm ON ocr.parquet_file = lm.parquet_file AND ocr.row_index = lm.row_index
+ORDER BY ocr.processed_at DESC;
+
+-- =============================================================================
+-- SUCCESS MESSAGE
+-- =============================================================================
+
 DO $$
 BEGIN
     RAISE NOTICE '✓ Database schema initialized successfully';
-    RAISE NOTICE '✓ Tables created: documents, document_pages, ocr_results, annotations, models, training_runs, predictions';
+    RAISE NOTICE '✓ PDF Processing: documents_metadata, document_pages, ocr_results, ocr_bounding_boxes, annotations';
+    RAISE NOTICE '✓ ML Training: models, training_runs, training_epochs, predictions';
+    RAISE NOTICE '✓ Parquet Data: lmcheck, parquet_ocr_results, parquet_ocr_words, parquet_yolo_regions';
+    RAISE NOTICE '✓ Views: document_processing_status, training_run_summary, parquet_ocr_summary';
 END $$;

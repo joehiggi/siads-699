@@ -1,0 +1,93 @@
+-- Create tables for OCR results from parquet files
+-- Links to existing lmcheck table for parquet metadata
+
+-- Main OCR results table for parquet images
+CREATE TABLE IF NOT EXISTS parquet_ocr_results (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    parquet_file VARCHAR(255) NOT NULL,
+    row_index INTEGER NOT NULL,
+    label INTEGER,
+    image_size_width INTEGER,
+    image_size_height INTEGER,
+    image_mode VARCHAR(10),
+
+    -- OCR engine information
+    ocr_engine VARCHAR(50) NOT NULL, -- 'tesseract', 'yolo', 'combined'
+
+    -- Tesseract results
+    tesseract_full_text TEXT,
+    tesseract_confidence FLOAT,
+    tesseract_word_count INTEGER,
+
+    -- YOLO results
+    yolo_region_count INTEGER DEFAULT 0,
+
+    -- Processing metadata
+    processing_status VARCHAR(20) DEFAULT 'success', -- 'success', 'error', 'partial'
+    processing_error TEXT,
+    processing_time_seconds FLOAT,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(parquet_file, row_index, ocr_engine)
+);
+
+-- Word-level OCR details from Tesseract
+CREATE TABLE IF NOT EXISTS parquet_ocr_words (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ocr_result_id UUID NOT NULL REFERENCES parquet_ocr_results(id) ON DELETE CASCADE,
+    word_text VARCHAR(500),
+    confidence FLOAT,
+    x_min INTEGER,
+    y_min INTEGER,
+    x_max INTEGER,
+    y_max INTEGER,
+    sequence_number INTEGER
+);
+
+-- YOLO detected regions
+CREATE TABLE IF NOT EXISTS parquet_yolo_regions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ocr_result_id UUID NOT NULL REFERENCES parquet_ocr_results(id) ON DELETE CASCADE,
+    class_id INTEGER,
+    confidence FLOAT,
+    x_min INTEGER,
+    y_min INTEGER,
+    x_max INTEGER,
+    y_max INTEGER
+);
+
+-- Create indexes for efficient querying
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_parquet_file ON parquet_ocr_results(parquet_file);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_label ON parquet_ocr_results(label);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_engine ON parquet_ocr_results(ocr_engine);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_status ON parquet_ocr_results(processing_status);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_words_result_id ON parquet_ocr_words(ocr_result_id);
+CREATE INDEX IF NOT EXISTS idx_parquet_yolo_regions_result_id ON parquet_yolo_regions(ocr_result_id);
+
+-- Foreign key to link with lmcheck if needed
+-- ALTER TABLE parquet_ocr_results ADD CONSTRAINT fk_lmcheck
+--     FOREIGN KEY (parquet_file, row_index)
+--     REFERENCES lmcheck(parquet_file, row_index) ON DELETE CASCADE;
+
+COMMENT ON TABLE parquet_ocr_results IS 'OCR results for images stored in parquet files';
+COMMENT ON TABLE parquet_ocr_words IS 'Word-level OCR details with bounding boxes';
+COMMENT ON TABLE parquet_yolo_regions IS 'YOLO detected text regions';
+
+-- Useful view to combine OCR results with parquet metadata
+CREATE OR REPLACE VIEW parquet_ocr_summary AS
+SELECT
+    ocr.id,
+    ocr.parquet_file,
+    ocr.row_index,
+    ocr.label,
+    ocr.ocr_engine,
+    ocr.tesseract_full_text,
+    ocr.tesseract_confidence,
+    ocr.tesseract_word_count,
+    ocr.yolo_region_count,
+    ocr.processing_status,
+    ocr.processed_at,
+    lm.image_size_bytes
+FROM parquet_ocr_results ocr
+LEFT JOIN lmcheck lm ON ocr.parquet_file = lm.parquet_file AND ocr.row_index = lm.row_index
+ORDER BY ocr.processed_at DESC;
