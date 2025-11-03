@@ -4,10 +4,11 @@ import torch
 from ultralytics import YOLO
 import sys
 
+
 def test_gpu():
     """Test GPU availability and performance"""
-    print("="*70)
-    print("GPU Configuration Test\n" + "="*70)
+    print("=" * 70)
+    print("GPU Configuration Test\n" + "=" * 70)
 
     # PyTorch GPU Check
     print("\n1. PyTorch GPU Status:")
@@ -20,12 +21,16 @@ def test_gpu():
         for i in range(torch.cuda.device_count()):
             print(f"\n   GPU {i}:")
             print(f"     Name: {torch.cuda.get_device_name(i)}")
-            print(f"     Memory: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.2f} GB")
-            print(f"     Compute Capability: {torch.cuda.get_device_properties(i).major}.{torch.cuda.get_device_properties(i).minor}")
+            print(
+                f"     Memory: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.2f} GB"
+            )
+            print(
+                f"     Compute Capability: {torch.cuda.get_device_properties(i).major}.{torch.cuda.get_device_properties(i).minor}"
+            )
 
         # Test CUDA with a simple tensor operation
         print("\n2. CUDA Performance Test:")
-        device = torch.device('cuda')
+        device = torch.device("cuda")
 
         # Create random tensors
         x = torch.randn(1000, 1000, device=device)
@@ -33,6 +38,7 @@ def test_gpu():
 
         # Time matrix multiplication
         import time
+
         start = time.time()
         for _ in range(100):
             z = torch.mm(x, y)
@@ -61,14 +67,16 @@ def test_gpu():
         print("\n   To fix:")
         print("     - Install NVIDIA GPU drivers")
         print("     - Install NVIDIA Container Toolkit:")
-        print("       https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html")
+        print(
+            "       https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+        )
         print("     - Restart Docker and rebuild container")
 
     # Test YOLO with GPU
     print("\n3. YOLO GPU Test:")
     try:
-        model = YOLO('yolov8n.pt')
-        device_name = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        model = YOLO("yolov8n.pt")
+        device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
         print(f"   YOLO Model loaded")
         print(f"   Device: {device_name}")
 
@@ -80,14 +88,15 @@ def test_gpu():
     except Exception as e:
         print(f"   Error loading YOLO: {e}")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     if torch.cuda.is_available():
         print("✓ GPU is properly configured and working!")
     else:
         print("⚠ GPU is NOT available - running on CPU only")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     return torch.cuda.is_available()
+
 
 if __name__ == "__main__":
     gpu_available = test_gpu()

@@ -19,9 +19,9 @@ import os
 class YOLODocumentTrainer:
     """Train YOLO models on document images from parquet files"""
 
-    def __init__(self,
-                 parquet_dir="/workspace/data/raw",
-                 output_dir="/workspace/data/output/yolo_training"):
+    def __init__(
+        self, parquet_dir="/workspace/data/raw", output_dir="/workspace/data/output/yolo_training"
+    ):
         """
         Initialize YOLO trainer
 
@@ -46,9 +46,9 @@ class YOLODocumentTrainer:
             split_ratio: Train/val split ratio
             max_images_per_class: Optional limit on images per class
         """
-        print("="*70)
+        print("=" * 70)
         print("Extracting images from parquet files for YOLO training")
-        print("="*70)
+        print("=" * 70)
 
         # Find all parquet files
         parquet_files = sorted(self.parquet_dir.glob("*.parquet"))
@@ -74,7 +74,7 @@ class YOLODocumentTrainer:
             df = pd.read_parquet(pf)
 
             for idx, row in tqdm(df.iterrows(), total=len(df), desc="  Loading images"):
-                label = row.get('label', 0)
+                label = row.get("label", 0)
 
                 # Track label counts
                 label_counts[label] = label_counts.get(label, 0) + 1
@@ -83,12 +83,14 @@ class YOLODocumentTrainer:
                 if max_images_per_class and label_counts[label] > max_images_per_class:
                     continue
 
-                all_images.append({
-                    'image_data': row['image'],
-                    'label': label,
-                    'source_file': pf.name,
-                    'row_index': idx
-                })
+                all_images.append(
+                    {
+                        "image_data": row["image"],
+                        "label": label,
+                        "source_file": pf.name,
+                        "row_index": idx,
+                    }
+                )
 
         print(f"\nTotal images collected: {len(all_images):,}")
         print("Label distribution:")
@@ -121,20 +123,20 @@ class YOLODocumentTrainer:
         for i, img_data in enumerate(tqdm(image_list, desc=f"  Saving {split_name}")):
             try:
                 # Extract image
-                if isinstance(img_data['image_data'], dict):
-                    image_bytes = img_data['image_data'].get('bytes')
+                if isinstance(img_data["image_data"], dict):
+                    image_bytes = img_data["image_data"].get("bytes")
                 else:
-                    image_bytes = img_data['image_data']
+                    image_bytes = img_data["image_data"]
 
                 image = Image.open(io.BytesIO(image_bytes))
 
                 # Convert to RGB if needed
-                if image.mode != 'RGB':
-                    image = image.convert('RGB')
+                if image.mode != "RGB":
+                    image = image.convert("RGB")
 
                 # Save with label in filename for classification
                 filename = f"class_{img_data['label']}_img_{i:06d}.jpg"
-                image.save(output_dir / filename, 'JPEG', quality=95)
+                image.save(output_dir / filename, "JPEG", quality=95)
 
             except Exception as e:
                 print(f"Error saving image {i}: {e}")
@@ -145,15 +147,15 @@ class YOLODocumentTrainer:
         class_names = [f"class_{i}" for i in sorted(labels)]
 
         yaml_content = {
-            'path': str(self.dataset_dir.absolute()),
-            'train': 'train/images',
-            'val': 'val/images',
-            'nc': num_classes,
-            'names': class_names
+            "path": str(self.dataset_dir.absolute()),
+            "train": "train/images",
+            "val": "val/images",
+            "nc": num_classes,
+            "names": class_names,
         }
 
         yaml_path = self.dataset_dir / "dataset.yaml"
-        with open(yaml_path, 'w') as f:
+        with open(yaml_path, "w") as f:
             yaml.dump(yaml_content, f, default_flow_style=False)
 
         print(f"\n✓ Dataset YAML created: {yaml_path}")
@@ -162,12 +164,9 @@ class YOLODocumentTrainer:
 
         return yaml_path
 
-    def train_classification_model(self,
-                                   model_size='n',
-                                   epochs=50,
-                                   imgsz=224,
-                                   batch=16,
-                                   device='0'):
+    def train_classification_model(
+        self, model_size="n", epochs=50, imgsz=224, batch=16, device="0"
+    ):
         """
         Train YOLO classification model
 
@@ -178,9 +177,9 @@ class YOLODocumentTrainer:
             batch: Batch size
             device: Device to train on ('0' for GPU, 'cpu' for CPU)
         """
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Training YOLO Classification Model")
-        print("="*70)
+        print("=" * 70)
 
         # Initialize model
         model_name = f"yolov8{model_size}-cls.pt"
@@ -204,11 +203,11 @@ class YOLODocumentTrainer:
             name="document_classifier",
             exist_ok=True,
             pretrained=True,
-            optimizer='Adam',
+            optimizer="Adam",
             verbose=True,
             patience=10,  # Early stopping
             save=True,
-            plots=True
+            plots=True,
         )
 
         print("\n✓ Training complete!")
@@ -216,12 +215,7 @@ class YOLODocumentTrainer:
 
         return results
 
-    def train_detection_model(self,
-                             model_size='n',
-                             epochs=50,
-                             imgsz=640,
-                             batch=16,
-                             device='0'):
+    def train_detection_model(self, model_size="n", epochs=50, imgsz=640, batch=16, device="0"):
         """
         Train YOLO detection model (for text region detection)
         Note: This requires annotated bounding boxes
@@ -233,9 +227,9 @@ class YOLODocumentTrainer:
             batch: Batch size
             device: Device to train on
         """
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Training YOLO Detection Model")
-        print("="*70)
+        print("=" * 70)
         print("⚠ Note: Detection training requires bounding box annotations")
         print("  This basic setup uses classification data")
         print("  For text detection, you'll need to annotate text regions")
@@ -262,9 +256,9 @@ class YOLODocumentTrainer:
         Args:
             model_path: Path to trained model weights
         """
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Evaluating Model")
-        print("="*70)
+        print("=" * 70)
 
         model = YOLO(model_path)
 
@@ -274,7 +268,7 @@ class YOLODocumentTrainer:
         print("\n✓ Evaluation complete!")
         return results
 
-    def export_model(self, model_path, format='onnx'):
+    def export_model(self, model_path, format="onnx"):
         """
         Export model to different format
 
@@ -293,21 +287,19 @@ class YOLODocumentTrainer:
 
 def main():
     """Main execution function"""
-    print("="*70)
+    print("=" * 70)
     print("YOLO Document Classification Training Pipeline")
-    print("="*70)
+    print("=" * 70)
 
     # Initialize trainer
     trainer = YOLODocumentTrainer(
-        parquet_dir="/workspace/data/raw",
-        output_dir="/workspace/data/output/yolo_training"
+        parquet_dir="/workspace/data/raw", output_dir="/workspace/data/output/yolo_training"
     )
 
     # Step 1: Extract images and prepare dataset
     print("\nStep 1: Preparing dataset...")
     success = trainer.extract_images_from_parquet(
-        split_ratio=0.8,
-        max_images_per_class=1000  # Limit for testing
+        split_ratio=0.8, max_images_per_class=1000  # Limit for testing
     )
 
     if not success:
@@ -320,11 +312,11 @@ def main():
 
     # Uncomment to train:
     results = trainer.train_classification_model(
-        model_size='n',  # nano model for quick training
-        epochs=10,       # Start with few epochs for testing
+        model_size="n",  # nano model for quick training
+        epochs=10,  # Start with few epochs for testing
         imgsz=224,
         batch=16,
-        device='0'       # Use '0' for GPU, 'cpu' for CPU
+        device="0",  # Use '0' for GPU, 'cpu' for CPU
     )
 
     # Step 3: Export model (optional)
@@ -332,9 +324,9 @@ def main():
     # if model_path.exists():
     #     trainer.export_model(model_path, format='onnx')
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Training pipeline complete!")
-    print("="*70)
+    print("=" * 70)
     print("\nNext steps:")
     print("1. Review training results in the models directory")
     print("2. Evaluate model performance on validation set")

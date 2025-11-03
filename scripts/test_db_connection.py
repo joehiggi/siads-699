@@ -4,14 +4,15 @@ import os
 from sqlalchemy import create_engine, text
 import pandas as pd
 
+
 def test_connection():
     """Test database connection and show OCR results"""
 
     # Connect to database
     DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:123@db:5432/postgres")
 
-    print("="*70)
-    print("Testing Database Connection\n" + "="*70)
+    print("=" * 70)
+    print("Testing Database Connection\n" + "=" * 70)
     print(f"\nConnecting to: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else 'database'}")
 
     try:
@@ -23,13 +24,17 @@ def test_connection():
             print("✓ Database connection successful\n")
 
             # Check if OCR tables exist
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
                 AND table_name LIKE 'parquet%'
                 ORDER BY table_name
-            """))
+            """
+                )
+            )
             tables = result.fetchall()
 
             if tables:
@@ -51,7 +56,9 @@ def test_connection():
                 print("Recent OCR Results:")
                 print("-" * 70)
 
-                df = pd.read_sql(text("""
+                df = pd.read_sql(
+                    text(
+                        """
                     SELECT
                         parquet_file,
                         row_index,
@@ -65,13 +72,18 @@ def test_connection():
                     FROM parquet_ocr_results
                     ORDER BY processed_at DESC
                     LIMIT 10
-                """), conn)
+                """
+                    ),
+                    conn,
+                )
 
                 print(df.to_string(index=False))
                 print()
 
                 # Show sample text
-                result = conn.execute(text("""
+                result = conn.execute(
+                    text(
+                        """
                     SELECT
                         parquet_file,
                         row_index,
@@ -80,7 +92,9 @@ def test_connection():
                     WHERE tesseract_full_text IS NOT NULL
                     AND LENGTH(tesseract_full_text) > 0
                     LIMIT 3
-                """))
+                """
+                    )
+                )
                 samples = result.fetchall()
 
                 if samples:
@@ -91,7 +105,9 @@ def test_connection():
                 print()
 
                 # Statistics by label
-                result = conn.execute(text("""
+                result = conn.execute(
+                    text(
+                        """
                     SELECT
                         label,
                         COUNT(*) as count,
@@ -100,7 +116,9 @@ def test_connection():
                     WHERE ocr_engine = 'tesseract'
                     GROUP BY label
                     ORDER BY label
-                """))
+                """
+                    )
+                )
                 stats = result.fetchall()
 
                 if stats:
@@ -113,13 +131,13 @@ def test_connection():
                         print(f"{label:<10} {count:<10} {conf_str:<15}")
                     print()
 
-            print("="*70)
+            print("=" * 70)
             print("✓ Database test complete\n")
             print("Useful queries:")
             print("  SELECT * FROM parquet_ocr_summary;")
             print("  SELECT * FROM parquet_ocr_words WHERE confidence > 80;")
             print("  SELECT * FROM parquet_yolo_regions;")
-            print("="*70)
+            print("=" * 70)
 
     except Exception as e:
         print(f"❌ Database error: {e}\n")
@@ -127,6 +145,7 @@ def test_connection():
         print("  1. Docker containers are running: docker-compose up -d")
         print("  2. Database is initialized")
         print("  3. DATABASE_URL environment variable is set correctly")
+
 
 if __name__ == "__main__":
     test_connection()
