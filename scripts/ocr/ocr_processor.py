@@ -51,12 +51,10 @@ class OCRProcessor:
         self.use_tesseract = use_tesseract
         self.save_to_db = save_to_db
 
-        # Initialize database connection
         self.db_engine = None
         if self.save_to_db:
             self._initialize_database(database_url)
 
-        # Initialize models
         self.yolo_model = None
         if self.use_yolo_ocr:
             self._initialize_yolo()
@@ -64,7 +62,6 @@ class OCRProcessor:
     def _initialize_database(self, database_url):
         """Initialize database connection"""
         try:
-            # Use provided URL or get from environment
             db_url = database_url or os.getenv(
                 "DATABASE_URL", "postgresql://postgres:123@db:5432/postgres"
             )
@@ -74,14 +71,13 @@ class OCRProcessor:
             )
             self.db_engine = create_engine(db_url)
 
-            # Test connection
             with self.db_engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
                 conn.commit()
 
-            print("✓ Database connection established")
+            print("Database connection established")
         except Exception as e:
-            print(f"⚠ Could not connect to database: {e}")
+            print(f"Could not connect to database: {e}")
             print("  Results will only be saved to files")
             self.save_to_db = False
             self.db_engine = None
@@ -89,26 +85,16 @@ class OCRProcessor:
     def _initialize_yolo(self):
         """Initialize YOLO model for text detection/recognition"""
         try:
-            # Try to load a pre-trained YOLO model for document/text detection
-            # Note: You may need to download specific OCR models or train your own
             print("Loading YOLO model for text detection...")
-
-            # Option 1: Use YOLOv8 for object detection (can detect text regions)
-            self.yolo_model = YOLO("yolov8n.pt")  # Nano model for speed
-
-            # Move model to GPU if available
+            self.yolo_model = YOLO("yolov8n.pt")
             if torch.cuda.is_available():
                 self.yolo_model.to("cuda")
-                print(f"  ✓ Using GPU: {torch.cuda.get_device_name(0)}")
+                print(f"  Using GPU: {torch.cuda.get_device_name(0)}")
             else:
-                print("  ⚠ GPU not available, using CPU")
-
-            # Alternative: You can train a custom YOLO model specifically for text detection
-            # Or use a pre-trained OCR-specific YOLO model if available
-
-            print("✓ YOLO model loaded successfully")
+                print("  GPU not available, using CPU")
+            print("YOLO model loaded successfully")
         except Exception as e:
-            print(f"⚠ Could not load YOLO model: {e}")
+            print(f"Could not load YOLO model: {e}")
             print("  Continuing with Tesseract OCR only")
             self.use_yolo_ocr = False
 
@@ -143,17 +129,12 @@ class OCRProcessor:
             return []
 
         try:
-            # Ensure image is RGB (YOLO expects 3 channels)
             if image.mode != "RGB":
                 image = image.convert("RGB")
 
-            # Convert PIL to numpy array for YOLO
             img_array = np.array(image)
-
-            # Run YOLO detection
             results = self.yolo_model(img_array, conf=0.25, device="cuda")
 
-            # Extract bounding boxes
             text_regions = []
             for result in results:
                 boxes = result.boxes
@@ -186,26 +167,19 @@ class OCRProcessor:
             Dictionary with OCR results
         """
         try:
-            # Ensure image is in a format Tesseract can handle
-            # Tesseract works well with RGB or grayscale
             if image.mode not in ["RGB", "L", "RGBA"]:
                 image = image.convert("RGB")
 
-            # Get text with confidence scores
             data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-
-            # Extract full text
             full_text = pytesseract.image_to_string(image)
 
-            # Calculate average confidence for non-empty text
             confidences = [int(conf) for conf in data["conf"] if conf != "-1"]
             avg_confidence = np.mean(confidences) if confidences else 0
 
-            # Extract words with bounding boxes
             words = []
             n_boxes = len(data["text"])
             for i in range(n_boxes):
-                if int(data["conf"][i]) > 0:  # Filter out low confidence
+                if int(data["conf"][i]) > 0:
                     word = {
                         "text": data["text"][i],
                         "confidence": int(data["conf"][i]),
@@ -216,7 +190,7 @@ class OCRProcessor:
                             data["top"][i] + data["height"][i],
                         ],
                     }
-                    if word["text"].strip():  # Only non-empty text
+                    if word["text"].strip():
                         words.append(word)
 
             return {
@@ -250,12 +224,10 @@ class OCRProcessor:
         result = {"label": label, "timestamp": datetime.now().isoformat(), "methods": {}}
 
         try:
-            # Extract image
             image = self._extract_image_from_row(image_data)
             result["image_size"] = image.size
             result["image_mode"] = image.mode
 
-            # YOLO text detection
             if self.use_yolo_ocr:
                 text_regions = self._yolo_detect_text_regions(image)
                 result["methods"]["yolo"] = {
@@ -263,7 +235,6 @@ class OCRProcessor:
                     "num_regions": len(text_regions),
                 }
 
-            # Tesseract OCR
             if self.use_tesseract:
                 tesseract_result = self._tesseract_ocr(image)
                 result["methods"]["tesseract"] = tesseract_result
@@ -295,24 +266,20 @@ class OCRProcessor:
                         if result["status"] != "success":
                             continue
 
-                        # Insert main OCR result (Tesseract)
                         if "tesseract" in result["methods"]:
                             ocr_id = self._insert_ocr_result(conn, result, "tesseract")
 
-                            # Insert word-level details
                             if ocr_id and "words" in result["methods"]["tesseract"]:
                                 self._insert_ocr_words(
                                     conn, ocr_id, result["methods"]["tesseract"]["words"]
                                 )
 
-                        # Insert YOLO result
                         if (
                             "yolo" in result["methods"]
                             and result["methods"]["yolo"]["num_regions"] > 0
                         ):
                             yolo_id = self._insert_ocr_result(conn, result, "yolo")
 
-                            # Insert YOLO regions
                             if yolo_id:
                                 self._insert_yolo_regions(
                                     conn, yolo_id, result["methods"]["yolo"]["text_regions"]
@@ -321,15 +288,14 @@ class OCRProcessor:
                         conn.commit()
                         saved_count += 1
 
-                    except Exception as e:
-                        # Rollback this transaction and continue with next result
+                    except Exception:
                         conn.rollback()
                         continue
 
-            print(f"✓ Saved {saved_count}/{len(results_list)} results to database")
+            print(f"Saved {saved_count}/{len(results_list)} results to database")
 
         except Exception as e:
-            print(f"⚠ Error saving to database: {e}")
+            print(f"Error saving to database: {e}")
 
     def _insert_ocr_result(self, conn, result, engine_type):
         """Insert main OCR result record"""
@@ -478,17 +444,14 @@ class OCRProcessor:
         """
         print(f"\nProcessing: {parquet_file.name}")
 
-        # Read parquet file
         df = pd.read_parquet(parquet_file)
 
-        # Sample if requested
         if sample_size and sample_size < len(df):
             df = df.sample(n=sample_size, random_state=42)
             print(f"  Processing sample of {sample_size} images")
         else:
             print(f"  Processing all {len(df)} images")
 
-        # Process each image
         results = []
         for idx, row in tqdm(df.iterrows(), total=len(df), desc="  OCR Processing"):
             result = self.process_image(image_data=row["image"], label=row.get("label"))
@@ -496,7 +459,6 @@ class OCRProcessor:
             result["row_index"] = idx
             results.append(result)
 
-        # Save to database
         if self.save_to_db and results:
             print(f"  Saving {len(results)} results to database...")
             self._save_to_database(results)
@@ -516,7 +478,7 @@ class OCRProcessor:
         parquet_files = sorted(self.parquet_dir.glob("*.parquet"))
 
         if not parquet_files:
-            print(f"❌ No parquet files found in {self.parquet_dir}")
+            print(f"No parquet files found in {self.parquet_dir}")
             return pd.DataFrame()
 
         print(f"Found {len(parquet_files)} parquet files")
@@ -547,10 +509,8 @@ class OCRProcessor:
             results_df.to_json(output_file, orient="records", indent=2)
         elif format == "csv":
             output_file = self.output_dir / f"ocr_results_{timestamp}.csv"
-            # For CSV, we need to flatten nested structures
             simplified_df = results_df.copy()
             if "methods" in simplified_df.columns:
-                # Extract key metrics
                 simplified_df["tesseract_text"] = simplified_df["methods"].apply(
                     lambda x: x.get("tesseract", {}).get("full_text", "")
                     if isinstance(x, dict)
@@ -567,7 +527,7 @@ class OCRProcessor:
                 simplified_df = simplified_df.drop(columns=["methods"])
             simplified_df.to_csv(output_file, index=False)
 
-        print(f"✓ Results saved to: {output_file}")
+        print(f"Results saved to: {output_file}")
         return output_file
 
     def print_summary(self, results_df):
@@ -583,7 +543,6 @@ class OCRProcessor:
         print(f"Successful: {successful:,} ({successful/total*100:.1f}%)")
 
         if "methods" in results_df.columns:
-            # Tesseract statistics
             tesseract_texts = results_df["methods"].apply(
                 lambda x: x.get("tesseract", {}).get("full_text", "") if isinstance(x, dict) else ""
             )
@@ -601,7 +560,6 @@ class OCRProcessor:
             )
             print(f"  Average confidence: {avg_confidences.mean():.1f}%")
 
-            # YOLO statistics
             yolo_regions = results_df["methods"].apply(
                 lambda x: x.get("yolo", {}).get("num_regions", 0) if isinstance(x, dict) else 0
             )
@@ -618,7 +576,6 @@ def main():
     print("=" * 70)
     print("OCR Processor - Ultralytics + Tesseract + Database\n" + "=" * 70)
 
-    # Initialize processor with database support
     processor = OCRProcessor(
         parquet_dir="/workspace/data/raw",
         output_dir="/workspace/data/output/ocr_results",
@@ -627,7 +584,6 @@ def main():
         save_to_db=True,
     )
 
-    # Process images (small sample for testing)
     print("\nProcessing sample of images (10 per file)...")
     results_df = processor.process_all_parquets(sample_size=10)
 
@@ -638,13 +594,13 @@ def main():
         processor.save_results(results_df, format="csv")
 
         print("\n" + "=" * 70)
-        print("✓ OCR processing complete!")
+        print("OCR processing complete!")
         if processor.save_to_db:
-            print("✓ Results saved to database\n")
+            print("Results saved to database\n")
             print("Query with: SELECT * FROM parquet_ocr_results LIMIT 10;")
         print("=" * 70 + "\n")
     else:
-        print("❌ No results to save")
+        print("No results to save")
 
 
 if __name__ == "__main__":

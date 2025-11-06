@@ -32,15 +32,17 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
     # Connect to database
     engine = create_engine(DATABASE_URL)
 
-    # Create table if it doesn't exist
-    print("Creating document_metadata table...")
-    with open("/workspace/scripts/create_metadata_table.sql", "r") as f:
-        sql = f.read()
-
+    # Verify table exists (created by init-db.sql)
+    print("Verifying lmcheck table exists...")
     with engine.connect() as conn:
-        conn.execute(text(sql))
-        conn.commit()
-    print("✓ Table created/verified")
+        result = conn.execute(
+            text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'lmcheck')")
+        )
+        exists = result.scalar()
+        if not exists:
+            print("❌ Error: lmcheck table does not exist. Run init-db.sql first.")
+            return
+    print("✓ Table verified")
 
     # Find all parquet files
     parquet_path = Path(parquet_dir)
@@ -82,13 +84,13 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
             # Delete existing records for this parquet file first
             with engine.connect() as conn:
                 conn.execute(
-                    text("DELETE FROM document_metadata WHERE parquet_file = :pf"), {"pf": pf.name}
+                    text("DELETE FROM lmcheck WHERE parquet_file = :pf"), {"pf": pf.name}
                 )
                 conn.commit()
 
             # Insert new records
             metadata_df.to_sql(
-                "document_metadata",
+                "lmcheck",
                 engine,
                 if_exists="append",
                 index=False,
@@ -117,13 +119,13 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
         print("Records per second: N/A (elapsed time is zero)")
     # Query statistics
     with engine.connect() as conn:
-        result = conn.execute(text("SELECT COUNT(*) as total FROM document_metadata"))
+        result = conn.execute(text("SELECT COUNT(*) as total FROM lmcheck"))
         total = result.scalar()
         result = conn.execute(
             text(
                 """
             SELECT label, COUNT(*) as count
-            FROM document_metadata
+            FROM lmcheck
             GROUP BY label
             ORDER BY label
         """
@@ -138,7 +140,7 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
                 AVG(image_size_bytes) as avg_size,
                 MIN(image_size_bytes) as min_size,
                 MAX(image_size_bytes) as max_size
-            FROM document_metadata
+            FROM lmcheck
         """
             )
         )
@@ -156,8 +158,8 @@ def load_metadata_from_parquet(parquet_dir="/workspace/data/raw"):
 
     print("\n✓ Metadata loading complete!")
     print("You can now query the data efficiently using SQL:")
-    print("  SELECT * FROM document_metadata WHERE label = 5 LIMIT 10;")
-    print("  SELECT label, COUNT(*) FROM document_metadata GROUP BY label;")
+    print("  SELECT * FROM lmcheck WHERE label = 5 LIMIT 10;")
+    print("  SELECT label, COUNT(*) FROM lmcheck GROUP BY label;")
 
 
 if __name__ == "__main__":

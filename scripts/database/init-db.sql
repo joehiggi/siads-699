@@ -198,13 +198,7 @@ GROUP BY tr.id, tr.run_name, m.model_name, m.architecture,
          tr.num_epochs, tr.best_accuracy, tr.best_loss,
          tr.status, tr.duration_seconds, tr.start_time, tr.end_time;
 
--- Grant permissions (if needed for specific users)
--- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
--- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
-
--- =============================================================================
 -- PARQUET FILE METADATA & OCR RESULTS
--- =============================================================================
 
 -- Parquet file metadata table (lmcheck)
 CREATE TABLE IF NOT EXISTS lmcheck (

@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: pdf-ocr-devcontainer
+    container_name: 699-devcontainer
     volumes:
       - .:/workspace:cached
       - devcontainer-bashhistory:/commandhistory

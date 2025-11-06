@@ -9,11 +9,8 @@ from pathlib import Path
 from PIL import Image
 import io
 from ultralytics import YOLO
-import cv2
 from tqdm import tqdm
 import yaml
-import shutil
-import os
 
 
 class YOLODocumentTrainer:
