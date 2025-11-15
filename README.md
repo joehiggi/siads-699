@@ -26,10 +26,10 @@ Consistent with MADS academic integrity guidelines, assume that OpenAI's ChatGPT
 ```
 
 ### Product Architecture - Logical
-![Logical](/docs/imgs/architecture_1.png)
+![Logical](/docs/imgs/architecture_0.png)
 
 ### Product Architecture - Physical
-![Physical](/docs/imgs/architecture_0.png)
+![Physical](/docs/imgs/architecture_1.png)
 
 ### Dockerized Development
 - All container build assets live in `src/docker/` (`Dockerfile`, `compose.yml`, dependency lock, and helper scripts).
