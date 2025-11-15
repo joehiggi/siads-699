@@ -1,0 +1,34 @@
+Starting a Session with GreatLakes
+- Start VPN
+	- You do this through the Cisco desktop application
+	- Select the icon
+		- Select the network you wish to join ("UMVPN - Only U-M Traffic")
+- Login via ssh
+        - Windows can use "Putty" (a GUI for the command line interface (CLI))
+        - Mac can use zsh (shell)
+        - I believe both require the installation of the Cisco VPN
+                - Get Connected: https://documentation.its.umich.edu/node/5093
+- Login to GreatLakes `ssh joehiggi@greatlakes.arc-ts.umich.edu`
+	- From shell `ssh input_your_username@greatlakes.arc-ts.umich.edu`
+	- My username is joehiggi so would be `ssh joehiggi@greatlakes.arc-ts.umich.edu`
+
+
+Submitting jobs to GreatLakes (once a session has been started)
+- Activate a virtual environment
+	- To activate `mamba activate virtual_env`
+		-  (virtual_env is a placeholder name)
+	- To deactivate `mamba deactivate virtual_env`
+	- Load "mamba" module with `module load mamba`
+        	- Documentation: https://mamba.readthedocs.io/en/latest/
+                	- Mamba is a package manager capabale of spinning up virtual environments
+                	- Virtual environments are a way of solving the "well it worked on my machine" problem when sharing code on teams
+                		- It packages all dependenices (down to specific version) of required modules (such as pandas, sklearn etc.) to ensure there are no dependency mismatches
+
+- Submit batch job with `srun testing/siads-699/test_0.py`
+
+Other
+- Synchronizing local files to great lakes (run from local cli)
+	- "rsync -avzP --exclude='.DS_Store' siads-699/data/ joehiggi@greatlakes-xfer.arc-ts.umich.edu:/home/joehiggi/siads-699/data/"
+- Synchronizing remote files to local machine (run from local cli)
+	- "scp -r joehiggi@greatlakes-xfer.arc-ts.umich.edu:/home/joehiggi/siads-699/data/output/ ~/Documents/siads-699/data/output/"
+	
