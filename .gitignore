@@ -1,3 +1,6 @@
+data/
+src/.streamlit/secrets.toml
+src/runs
 # Environment variables
 .env
 .env.local
@@ -45,12 +48,14 @@ jupyter_notebook_config.py
 *.onnx
 *.pt
 *.pth
-models/
 *.model
 checkpoints/
-runs/
+/runs/
 wandb/
 mlruns/
+
+# Local notes
+local/google-drive-sharing.md
 
 # Data files
 data/*
@@ -100,5 +105,44 @@ temp/
 *.tmp
 *.bak
 *.backup
-.claude
-archive/
+
+# AI/Coding Agents
+.aider*
+.claude/
+.cursor/
+.continue/
+.codeium/
+.copilot/
+.tabnine/
+.github-copilot/
+agent_workspace/
+agent_logs/
+ai_context/
+.ai/
+.codex/
+.anthropic/
+.openai/
+
+# Project-specific ignores
+# Keep .env.example files
+!.env.example
+!**/.env.example
+
+# Model artifacts directory (compressed runs)
+models/artifacts/*.tar.gz
+models/artifacts/*.zip
+
+# Keep only README and .gitkeep in empty directories
+!models/artifacts/.gitkeep
+
+# Training output
+data/output/
+
+# Notebook outputs
+notebooks/*.html
+notebooks/*.pdf
+
+# Keep dataset README
+!data/raw/rvl-cdip-invoice/README.md
+
+*png*

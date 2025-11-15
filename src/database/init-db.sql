@@ -132,6 +132,61 @@ CREATE TABLE IF NOT EXISTS predictions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+<<<<<<<< HEAD:src/database/init-db.sql
+-- ============================================================================
+-- Parquet-based OCR Processing Tables
+-- ============================================================================
+-- These tables support OCR processing from parquet files (ocr_processor.py)
+
+-- Main OCR results from parquet files
+CREATE TABLE IF NOT EXISTS parquet_ocr_results (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    parquet_file VARCHAR(255) NOT NULL,
+    row_index INTEGER NOT NULL,
+    label VARCHAR(100),
+    image_size_width INTEGER,
+    image_size_height INTEGER,
+    image_mode VARCHAR(20), -- 'RGB', 'L', 'RGBA', etc.
+    ocr_engine VARCHAR(50) NOT NULL, -- 'tesseract', 'yolo', 'combined'
+    tesseract_full_text TEXT,
+    tesseract_confidence FLOAT,
+    tesseract_word_count INTEGER DEFAULT 0,
+    yolo_region_count INTEGER DEFAULT 0,
+    processing_status VARCHAR(20) DEFAULT 'success', -- 'success', 'error'
+    processing_error TEXT,
+    processing_time_seconds FLOAT,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(parquet_file, row_index, ocr_engine)
+);
+
+-- Word-level Tesseract OCR details
+CREATE TABLE IF NOT EXISTS parquet_ocr_words (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ocr_result_id UUID NOT NULL REFERENCES parquet_ocr_results(id) ON DELETE CASCADE,
+    word_text VARCHAR(500),
+    confidence INTEGER, -- 0-100
+    x_min INTEGER,
+    y_min INTEGER,
+    x_max INTEGER,
+    y_max INTEGER,
+    sequence_number INTEGER -- Order in document
+);
+
+-- YOLO detected text regions
+CREATE TABLE IF NOT EXISTS parquet_yolo_regions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ocr_result_id UUID NOT NULL REFERENCES parquet_ocr_results(id) ON DELETE CASCADE,
+    class_id INTEGER,
+    confidence FLOAT, -- 0-1
+    x_min INTEGER,
+    y_min INTEGER,
+    x_max INTEGER,
+    y_max INTEGER
+);
+
+-- ============================================================================
+========
+>>>>>>>> 7e81b0977500d76cdcdca4eb42dadd0eb5b3110d:scripts/database/init-db.sql
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_documents_metadata_status ON documents_metadata(status);
 CREATE INDEX IF NOT EXISTS idx_documents_metadata_type ON documents_metadata(document_type);
@@ -144,6 +199,17 @@ CREATE INDEX IF NOT EXISTS idx_training_epochs_run_id ON training_epochs(trainin
 CREATE INDEX IF NOT EXISTS idx_predictions_model_id ON predictions(model_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_page_id ON predictions(page_id);
 
+<<<<<<<< HEAD:src/database/init-db.sql
+-- Parquet tables indexes
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_results_parquet_file ON parquet_ocr_results(parquet_file);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_results_status ON parquet_ocr_results(processing_status);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_results_engine ON parquet_ocr_results(ocr_engine);
+CREATE INDEX IF NOT EXISTS idx_parquet_ocr_words_result_id ON parquet_ocr_words(ocr_result_id);
+CREATE INDEX IF NOT EXISTS idx_parquet_yolo_regions_result_id ON parquet_yolo_regions(ocr_result_id);
+
+-- ============================================================================
+========
+>>>>>>>> 7e81b0977500d76cdcdca4eb42dadd0eb5b3110d:scripts/database/init-db.sql
 -- Update trigger for updated_at columns
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -159,6 +225,27 @@ CREATE TRIGGER update_documents_metadata_updated_at BEFORE UPDATE ON documents_m
 CREATE TRIGGER update_annotations_updated_at BEFORE UPDATE ON annotations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+<<<<<<<< HEAD:src/database/init-db.sql
+-- ============================================================================
+-- Sample data (optional - for testing)
+-- ============================================================================
+-- Insert a sample document
+INSERT INTO documents (filename, file_path, file_size_bytes, page_count, document_type, status)
+VALUES
+    ('sample_invoice.pdf', '/workspace/datasets/sample_invoice.pdf', 524288, 1, 'invoice', 'uploaded'),
+    ('sample_form.pdf', '/workspace/datasets/sample_form.pdf', 1048576, 2, 'form', 'uploaded')
+ON CONFLICT DO NOTHING;
+
+-- Create a sample model record
+INSERT INTO models (model_name, model_type, architecture, description)
+VALUES
+    ('yolov8-invoice-detector', 'yolo', 'yolov8n', 'YOLOv8 nano model for detecting invoice fields'),
+    ('document-classifier', 'cnn', 'resnet50', 'ResNet50 for document type classification')
+ON CONFLICT DO NOTHING;
+
+-- ============================================================================
+========
+>>>>>>>> 7e81b0977500d76cdcdca4eb42dadd0eb5b3110d:scripts/database/init-db.sql
 -- Useful Views
 -- View to get document processing status with page counts
 CREATE OR REPLACE VIEW document_processing_status AS
@@ -302,8 +389,15 @@ ORDER BY ocr.processed_at DESC;
 DO $$
 BEGIN
     RAISE NOTICE '✓ Database schema initialized successfully';
+<<<<<<<< HEAD:src/database/init-db.sql
+    RAISE NOTICE '✓ PDF workflow tables: documents, document_pages, ocr_results, ocr_bounding_boxes, annotations';
+    RAISE NOTICE '✓ Training tables: models, training_runs, training_epochs, predictions';
+    RAISE NOTICE '✓ Parquet workflow tables: parquet_ocr_results, parquet_ocr_words, parquet_yolo_regions';
+    RAISE NOTICE '✓ Sample data inserted';
+========
     RAISE NOTICE '✓ PDF Processing: documents_metadata, document_pages, ocr_results, ocr_bounding_boxes, annotations';
     RAISE NOTICE '✓ ML Training: models, training_runs, training_epochs, predictions';
     RAISE NOTICE '✓ Parquet Data: lmcheck, parquet_ocr_results, parquet_ocr_words, parquet_yolo_regions';
     RAISE NOTICE '✓ Views: document_processing_status, training_run_summary, parquet_ocr_summary';
+>>>>>>>> 7e81b0977500d76cdcdca4eb42dadd0eb5b3110d:scripts/database/init-db.sql
 END $$;

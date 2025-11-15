@@ -1,0 +1,9 @@
+path: ../../data/input
+train: training
+val: validation
+test: testing
+
+names:
+  - header
+  - body
+  - footer
