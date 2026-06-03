@@ -81,6 +81,11 @@ Shut everything down with `docker compose -f src/docker/compose.yml down --volum
   docker compose -f src/docker/compose.yml up --build --remove-orphans -d
   ```
 
+### Related Project
+- The YOLOv8 + Tesseract document-parsing architecture here was generalised into
+  [G-GEN](https://github.com/joehiggi/g-gen) to read CNC product-specification
+  PDFs and generate G-code. See [docs/g-gen-spec-region-reuse.md](docs/g-gen-spec-region-reuse.md).
+
 ### Data
 - [Google Drive][1]
 
